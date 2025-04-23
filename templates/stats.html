@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ role.title() }} Stats{% endblock %}
+{% block content %}
+  <h2 class="mt-4">{{ role.title() }} Stats</h2>
+
+  <form method="post" class="row g-3 mb-4">
+    <div class="col-auto">
+      <label for="person-select" class="form-label">Select {{ role }}</label>
+      <select name="person" id="person-select" class="form-select" required>
+        <option value="">-- choose one --</option>
+        {% for key,label in persons %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto align-self-end">
+      <button type="submit" class="btn btn-primary">Show Totals</button>
+    </div>
+  </form>
+
+  {% if stats %}
+    <div class="alert alert-info">
+      <strong>{{ stats[0] }}</strong> total nominations  
+      &nbsp;|&nbsp;
+      <strong>{{ stats[1] }}</strong> Oscar wins
+    </div>
+  {% endif %}
+{% endblock %}

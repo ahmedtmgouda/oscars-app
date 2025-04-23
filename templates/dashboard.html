@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h2 class="mt-4 mb-4 text-center">Welcome, {{ g.user }}!</h2>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('nominate') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Nominate a Staff Member
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('nominations') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        My Nominations
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('top_nominated') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Top-Nominated Movies
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('stats', role='director') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Director Stats
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('stats', role='actor') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Actor Stats
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('stats', role='singer') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Singer Stats
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('top_actor_countries') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Top Actor Birth Countries
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('staff_by_country') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Staff by Country
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('dream_team') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Dream Team
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('top_companies') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Top Production Companies
+      </a>
+    </div>
+    <div class="col-12 col-md-6">
+      <a href="{{ url_for('non_english_winners') }}"
+         class="btn btn-primary w-100 py-3 rounded">
+        Non-English Oscar Winners
+      </a>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Top‑Nominated Movies{% endblock %}
+{% block content %}
+  <h2 class="mt-4">Top‑Nominated Movies</h2>
+  <form method="post" class="row g-3 mb-4" id="filter-form">
+    <div class="col-auto">
+      <select name="category" id="category-select" class="form-select">
+        <option value="">-- by Category --</option>
+        {% for c in categories %}
+          <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="year" id="year-select" class="form-select">
+        <option value="">-- by Release Year --</option>
+        {% for y in years %}
+          <option value="{{ y }}">{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Show Top Movies</button>
+    </div>
+  </form>
+
+  {% if results %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Movie</th>
+          <th>Release Date</th>
+          <th># Nominations</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for title, date, count in results %}
+          <tr>
+            <td>{{ title }}</td>
+            <td>{{ date }}</td>
+            <td>{{ count }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% elif results is not none %}
+    <p>No nominations found for that filter.</p>
+  {% endif %}
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const cat = document.getElementById("category-select");
+      const yr  = document.getElementById("year-select");
+
+      function toggle() {
+        if (cat.value) {
+          yr.disabled = true;
+        } else {
+          yr.disabled = false;
+        }
+        if (yr.value) {
+          cat.disabled = true;
+        } else {
+          cat.disabled = false;
+        }
+      }
+
+      cat.addEventListener("change", toggle);
+      yr.addEventListener("change", toggle);
+    });
+  </script>
+{% endblock %}

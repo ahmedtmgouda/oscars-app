@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Dream Team{% endblock %}
+{% block content %}
+  <div class="mt-4 text-center">
+    <h2>The Ultimate Oscars Dream Team</h2>
+    <p class="text-muted mb-4">Each role is filled by the living person with the most Oscar wins</p>
+  </div>
+
+  <div class="row row-cols-1 row-cols-md-2 g-4">
+    {% for role, info in team.items() %}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ role }}</h5>
+            <p class="card-text">
+              <strong>{{ info.name }}</strong><br>
+              <small class="text-muted">{{ info.wins }} Oscar{{ "s" if info.wins!=1 }}</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

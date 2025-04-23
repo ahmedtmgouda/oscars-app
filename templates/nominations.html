@@ -1,0 +1,28 @@
+<!-- templates/nominations.html -->
+{% extends "base.html" %}
+{% block title %}My Nominations{% endblock %}
+{% block content %}
+  <h2 class="mt-4">My Nominations</h2>
+  {% if nominations %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Movie</th>
+          <th>Staff Member</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for category, title, person in nominations %}
+          <tr>
+            <td>{{ category }}</td>
+            <td>{{ title }}</td>
+            <td>{{ person }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You haven’t made any nominations yet.</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Non-English Oscar Winners{% endblock %}
+{% block content %}
+  <h2 class="mt-4">Non-English Language Oscar-Winning Movies</h2>
+  {% if rows %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Movie</th>
+          <th>Year</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for title, year in rows %}
+          <tr>
+            <td>{{ title }}</td>
+            <td>{{ year }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No non-English Oscar-winning movies found.</p>
+  {% endif %}
+{% endblock %}

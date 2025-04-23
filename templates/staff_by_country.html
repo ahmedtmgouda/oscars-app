@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Staff by Country{% endblock %}
+{% block content %}
+  <h2 class="mt-4">Staff Nominations by Birth Country</h2>
+
+  <form method="post" class="row g-3 my-4">
+    <div class="col-auto">
+      <label for="country-select" class="form-label">Country</label>
+      <select name="country" id="country-select" class="form-select" required>
+        <option value="">-- choose a country --</option>
+        {% for c in countries %}
+          <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto align-self-end">
+      <button type="submit" class="btn btn-primary">Show Staff</button>
+    </div>
+  </form>
+
+  {% if results %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Staff Member</th>
+          <th>Category</th>
+          <th># Nominations</th>
+          <th># Oscars</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for first, last, category, noms, wins in results %}
+          <tr>
+            <td>{{ first }} {{ last }}</td>
+            <td>{{ category }}</td>
+            <td>{{ noms }}</td>
+            <td>{{ wins }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% elif results is not none %}
+    <p>No nominated staff found for that country.</p>
+  {% endif %}
+{% endblock %}

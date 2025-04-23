@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+  <h1 class="mt-4">Welcome{% if g.user %}, {{ g.user }}{% endif %}!</h1>
+  <p>Head to the dashboard to discover our latest features!</p>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Top Actor Birth Countries{% endblock %}
+{% block content %}
+  <div class="mt-5 text-center">
+    <h2>Best Actor Birth Countries</h2>
+  </div>
+
+  <div class="row mt-4">
+    <!-- Winners -->
+    <div class="col-md-6">
+      <h4 class="text-center">Oscar Wins</h4>
+      <ol class="list-group list-group-numbered w-75 mx-auto mt-3">
+        {% for country in winners %}
+          <li class="list-group-item">{{ country }}</li>
+        {% endfor %}
+        {% if winners|length < 5 %}
+          {% for i in range(winners|length, 5) %}
+            <li class="list-group-item text-muted">—</li>
+          {% endfor %}
+        {% endif %}
+      </ol>
+    </div>
+
+    <!-- Nominations -->
+    <div class="col-md-6">
+      <h4 class="text-center">Nominations</h4>
+      <ol class="list-group list-group-numbered w-75 mx-auto mt-3">
+        {% for country in nominees %}
+          <li class="list-group-item">{{ country }}</li>
+        {% endfor %}
+        {% if nominees|length < 5 %}
+          {% for i in range(nominees|length, 5) %}
+            <li class="list-group-item text-muted">—</li>
+          {% endfor %}
+        {% endif %}
+      </ol>
+    </div>
+  </div>
+{% endblock %}

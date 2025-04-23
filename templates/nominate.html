@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}New Nomination{% endblock %}
+{% block content %}
+  <h2 class="mt-4">Submit a Nomination</h2>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Staff Member</label>
+      <select name="person" class="form-select" required>
+        <option value="">Select a person…</option>
+        {% for key, label in persons %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Movie</label>
+      <select name="movie" class="form-select" required>
+        <option value="">Select a movie…</option>
+        {% for key, label in movies %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Category</label>
+      <select name="category" class="form-select" required>
+        <option value="">Select a category…</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Nomination</button>
+  </form>
+{% endblock %}
