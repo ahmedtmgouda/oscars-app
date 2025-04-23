@@ -493,15 +493,16 @@ def staff_by_country():
       results=results
     )
 
-TEAM_CATEGORIES = OrderedDict([
-    ("Director",     "Best Director"),
-    ("Leading Actor","Best Actor in a Leading Role"),
-    ("Leading Actress","Best Actress in a Leading Role"),
-    ("Supporting Actor","Best Actor in a Supporting Role"),
-    ("Supporting Actress","Best Actress in a Supporting Role"),
-    ("Producer",     "Best Picture"),
-    ("Singer",       "Best Music (Original Song)")
-])
+TEAM_CATEGORIES = {
+    "director": "%Director%",                  # catches Best Director
+    "actor":    "%Actor in a Leading Role%",   # you can tweak these to exactly what you want
+    "actress":  "%Actress in a Leading Role%",
+    "supporting_actor":   "%Supporting Actor%",
+    "supporting_actress": "%Supporting Actress%",
+    "producer": "%Picture%",                   # Best Picture producers
+    "singer":   "%Song%"                       # all song‐related categories
+}
+
 
 @app.route("/dream_team")
 @login_required
@@ -513,7 +514,7 @@ def dream_team():
     cur  = conn.cursor()
 
     team = {}
-    for role, category in TEAM_CATEGORIES.items():
+    for role, pattern in TEAM_CATEGORIES.items():
         cur.execute("""
             SELECT
               p.firstName,
@@ -524,29 +525,24 @@ def dream_team():
               ON p.firstName   = an.personFirstName
              AND p.lastName    = an.personLastName
              AND p.birthDate   = an.personBirthDate
-            WHERE an.category     = %s
+            WHERE an.category     LIKE %s
               AND an.grantedOrNot = 1
-              AND p.deathDate IS NULL
+              AND (p.deathDate IS NULL OR p.deathDate = '')
             GROUP BY p.firstName, p.lastName, p.birthDate
             ORDER BY wins DESC
             LIMIT 1
-        """, (category,))
+        """, (pattern,))
         row = cur.fetchone()
         if row:
             first, last, wins = row
-            team[role] = {
-                "name": f"{first} {last}",
-                "wins": wins
-            }
+            team[role] = {"name": f"{first} {last}", "wins": wins}
         else:
-            team[role] = {
-                "name": "(no living winner)",
-                "wins": 0
-            }
+            team[role] = {"name": "(no living winner)", "wins": 0}
 
     cur.close()
     conn.close()
     return render_template("dream_team.html", team=team)
+
 
 @app.route("/top_companies")
 @login_required
