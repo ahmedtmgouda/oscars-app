@@ -527,7 +527,8 @@ def dream_team():
              AND p.birthDate   = an.personBirthDate
             WHERE an.category     LIKE %s
               AND an.grantedOrNot = 1
-              AND (p.deathDate IS NULL OR p.deathDate = '')
+              -- only living winners: either truly NULL or zero-date
+              AND p.deathDate IS NULL
             GROUP BY p.firstName, p.lastName, p.birthDate
             ORDER BY wins DESC
             LIMIT 1
@@ -542,6 +543,7 @@ def dream_team():
     cur.close()
     conn.close()
     return render_template("dream_team.html", team=team)
+
 
 
 @app.route("/top_companies")
