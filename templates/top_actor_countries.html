@@ -8,10 +8,13 @@
   <div class="row mt-4">
     <!-- Winners -->
     <div class="col-md-6">
-      <h4 class="text-center">Oscar Wins</h4>
+      <h4 class="text-center">Oscar Wins</h4>
       <ol class="list-group list-group-numbered w-75 mx-auto mt-3">
-        {% for country in winners %}
-          <li class="list-group-item">{{ country }}</li>
+        {% for country, wins in winners %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ country }}</span>
+            <span>{{ wins }} win{{ 's' if wins != 1 }}</span>
+          </li>
         {% endfor %}
         {% if winners|length < 5 %}
           {% for i in range(winners|length, 5) %}
@@ -25,8 +28,11 @@
     <div class="col-md-6">
       <h4 class="text-center">Nominations</h4>
       <ol class="list-group list-group-numbered w-75 mx-auto mt-3">
-        {% for country in nominees %}
-          <li class="list-group-item">{{ country }}</li>
+        {% for country, noms in nominees %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ country }}</span>
+            <span>{{ noms }} nomination{{ 's' if noms != 1 }}</span>
+          </li>
         {% endfor %}
         {% if nominees|length < 5 %}
           {% for i in range(nominees|length, 5) %}

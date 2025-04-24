@@ -10,14 +10,12 @@ from db import get_db
 import mysql.connector
 from collections import OrderedDict
 
-# Load .env for local/public‑network dev
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "dev-secret")
 
 
-# --- Helpers & Hooks ---------------------------------------------------------
 
 @app.before_request
 def load_logged_in_user():
@@ -33,7 +31,6 @@ def login_required(view):
     return wrapped
 
 
-# --- Routes ------------------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -106,7 +103,7 @@ def register():
         flash("Registration successful! Please log in.", "success")
         return redirect(url_for("login"))
 
-    # GET
+    
     return render_template("register.html")
 
 
@@ -132,7 +129,6 @@ def login():
             flash("Username not found.", "danger")
             return redirect(url_for("login"))
 
-    # GET
     return render_template("login.html")
 
 
@@ -197,7 +193,7 @@ def nominate():
 
         return redirect(url_for("nominate"))
 
-    # GET: load choice lists
+    # load choice lists
     cur.execute("""
       SELECT
         CONCAT(firstName, '|', lastName, '|', birthDate) AS person_key,
@@ -235,9 +231,7 @@ def nominate():
 @app.route("/nominations")
 @login_required
 def nominations():
-    """
-    Show the current user’s nominations (category, movie title, staff member).
-    """
+    
     conn = get_db()
     cur  = conn.cursor()
     cur.execute(
@@ -286,7 +280,6 @@ def top_nominated():
                 WHERE category = %s
                 GROUP BY movieTitle, movieReleaseDate
                 ORDER BY nomination_count DESC
-                LIMIT 5
                 """,
                 (cat,)
             )
@@ -299,7 +292,6 @@ def top_nominated():
                 WHERE YEAR(movieReleaseDate) = %s
                 GROUP BY movieTitle, movieReleaseDate
                 ORDER BY nomination_count DESC
-                LIMIT 5
                 """,
                 (yr,)
             )
@@ -316,49 +308,71 @@ def top_nominated():
     )
 
 
-# Define this near the top of app.py, alongside your other globals:
-ROLE_PATTERNS = {
-    "director": "%Director%",
-    "actor":    "%Actor%",      # catches “Best Actor” & “Supporting Actor”
-    "singer":   "%Song%"        # catches “Original Song” nominees
+ROLE_CATEGORIES = {
+    "director": [
+        "Best Director",
+        "Best Directing",
+        "Best Directing (Comedy Picture)",
+        "Best Directing (Dramatic Picture)"
+    ],
+    "actor": [
+        "Best Actor",
+        "Best Actor in a Leading Role",
+        "Best Actor in a Supporting Role",
+        "Best Actress",
+        "Best Actress in a Leading Role",
+        "Best Actress in a Supporting Role"
+    ],
+    "singer": [
+        "Best Music (Adaptation Score)",
+        "Best Music (Music Score of a Dramatic or Comedy Picture)",
+        "Best Music (Music Score of a Dramatic Picture)",
+        "Best Music (Original Dramatic Score)",
+        "Best Music (Original Musical or Comedy Score)",
+        "Best Music (Original Score)",
+        "Best Music (Original Song Score and Its Adaptation)",
+        "Best Music (Original Song Score or Adaptation Score)",
+        "Best Music (Original Song Score)",
+        "Best Music (Original Song)",
+        "Best Music (Scoring of a Musical Picture)",
+        "Best Music (Scoring)",
+        "Best Music (Song)"
+    ]
 }
 
-# Then further down, add/update this route:
 @app.route("/stats/<role>", methods=["GET", "POST"])
 @login_required
 def stats(role):
-    if role not in ROLE_PATTERNS:
+    if role not in ROLE_CATEGORIES:
         flash("Unknown role.", "danger")
         return redirect(url_for("index"))
 
-    pattern = ROLE_PATTERNS[role]
+    patterns = ROLE_CATEGORIES[role]
     conn = get_db()
     cur = conn.cursor()
 
-    # 1) Preload all persons who have nominations in that role,
-    #    grouping so we can ORDER BY lastName, firstName
     cur.execute("""
-      SELECT
-        CONCAT(personFirstName, '|', personLastName, '|', personBirthDate)
-          AS person_key,
-        CONCAT(personFirstName, ' ', personLastName)
-          AS person_label
-      FROM AcademyNomination
-      WHERE category LIKE %s
-      GROUP BY personFirstName, personLastName, personBirthDate
-      ORDER BY personLastName, personFirstName
-    """, (pattern,))
+        SELECT
+          CONCAT(personFirstName, '|', personLastName, '|', personBirthDate) AS person_key,
+          CONCAT(personFirstName, ' ', personLastName)                 AS person_label
+        FROM AcademyNomination
+        WHERE category IN ({})
+        GROUP BY personFirstName, personLastName, personBirthDate
+        ORDER BY personLastName, personFirstName
+    """.format(", ".join("%s" for _ in patterns)), tuple(patterns))
     persons = cur.fetchall()
 
     stats = None
+    nominations = None
+
     if request.method == "POST":
-        person_key = request.form.get("person")
-        if not person_key:
+        key = request.form.get("person")
+        if not key:
             flash("Please select a person.", "warning")
         else:
-            first, last, bdate = person_key.split("|")
+            first, last, bdate = key.split("|")
 
-            # 2) Count total nominations and wins for that person/role
+            # totals
             cur.execute("""
               SELECT
                 COUNT(*)                   AS nominations,
@@ -367,65 +381,94 @@ def stats(role):
               WHERE personFirstName = %s
                 AND personLastName  = %s
                 AND personBirthDate = %s
-                AND category LIKE %s
-            """, (first, last, bdate, pattern))
-            stats = cur.fetchone()  # tuple (nominations, wins)
+                AND category IN ({})
+            """.format(", ".join("%s" for _ in patterns)),
+            (first, last, bdate, *patterns))
+            stats = cur.fetchone()
+
+            # detailed list
+            cur.execute("""
+              SELECT
+                movieTitle,
+                movieReleaseDate,
+                category,
+                grantedOrNot
+              FROM AcademyNomination
+              WHERE personFirstName = %s
+                AND personLastName  = %s
+                AND personBirthDate = %s
+                AND category IN ({})
+              ORDER BY movieReleaseDate DESC, movieTitle
+            """.format(", ".join("%s" for _ in patterns)),
+            (first, last, bdate, *patterns))
+            nominations = cur.fetchall()
 
     cur.close()
     conn.close()
 
     return render_template(
-        "stats.html",
-        role=role,
-        persons=persons,
-        stats=stats
+      "stats.html",
+      role=role,
+      persons=persons,
+      stats=stats,
+      nominations=nominations
     )
+
+
 
 @app.route("/top_actor_countries")
 @login_required
 def top_actor_countries():
     """
-    Show two top‑5 lists:
+    Show two top-5 lists:
       • winners → Best Actor Oscar wins by country
       • nominees → Best Actor nominations by country
     """
     conn = get_db()
     cur  = conn.cursor()
 
-    # 1) winners: Best Actor winners
+    # winners: Best Actor Oscar wins by country
     cur.execute("""
-        SELECT p.countryOfBirth
+        SELECT
+          p.countryOfBirth,
+          COUNT(*) AS wins
         FROM AcademyNomination AS an
         JOIN Person AS p
-          ON p.firstName   = an.personFirstName
-         AND p.lastName    = an.personLastName
-         AND p.birthDate   = an.personBirthDate
-        WHERE an.category     = 'Best Actor'
+          ON p.firstName     = an.personFirstName
+         AND p.lastName      = an.personLastName
+         AND p.birthDate     = an.personBirthDate
+        WHERE (an.category = 'Best Actor'
+               OR an.category = 'Best Actor in a Leading Role'
+               OR an.category = 'Best Actor in a Supporting Role')
           AND an.grantedOrNot = 1
           AND p.countryOfBirth IS NOT NULL
           AND p.countryOfBirth <> ''
         GROUP BY p.countryOfBirth
-        ORDER BY COUNT(*) DESC
+        ORDER BY wins DESC
         LIMIT 5
     """)
-    winners = [row[0] for row in cur.fetchall()]
+    winners = cur.fetchall()  # [(country, wins), ...]
 
-    # 2) nominees: Best Actor nominations
+    # nominees: Best Actor nominations by country
     cur.execute("""
-        SELECT p.countryOfBirth
+        SELECT
+          p.countryOfBirth,
+          COUNT(*) AS nominations
         FROM AcademyNomination AS an
         JOIN Person AS p
-          ON p.firstName   = an.personFirstName
-         AND p.lastName    = an.personLastName
-         AND p.birthDate   = an.personBirthDate
-        WHERE an.category = 'Best Actor'
+          ON p.firstName     = an.personFirstName
+         AND p.lastName      = an.personLastName
+         AND p.birthDate     = an.personBirthDate
+        WHERE (an.category = 'Best Actor'
+               OR an.category = 'Best Actor in a Leading Role'
+               OR an.category = 'Best Actor in a Supporting Role')
           AND p.countryOfBirth IS NOT NULL
           AND p.countryOfBirth <> ''
         GROUP BY p.countryOfBirth
-        ORDER BY COUNT(*) DESC
+        ORDER BY nominations DESC
         LIMIT 5
     """)
-    nominees = [row[0] for row in cur.fetchall()]
+    nominees = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -435,6 +478,8 @@ def top_actor_countries():
         winners=winners,
         nominees=nominees
     )
+
+
 
 @app.route("/staff_by_country", methods=["GET", "POST"])
 @login_required
@@ -447,7 +492,7 @@ def staff_by_country():
     conn = get_db()
     cur  = conn.cursor()
 
-    # 1) Load all distinct, non‑empty birth countries
+    # Load all distinct, non‑empty birth countries
     cur.execute("""
       SELECT DISTINCT countryOfBirth
       FROM Person
@@ -482,7 +527,7 @@ def staff_by_country():
                 win_count DESC,
                 nomination_count DESC
             """, (country,))
-            results = cur.fetchall()  # list of (first, last, cat, nom_count, win_count)
+            results = cur.fetchall() 
 
     cur.close()
     conn.close()
@@ -493,55 +538,207 @@ def staff_by_country():
       results=results
     )
 
-TEAM_CATEGORIES = {
-    "director": "%Director%",                  # catches Best Director
-    "actor":    "%Actor in a Leading Role%",   # you can tweak these to exactly what you want
-    "actress":  "%Actress in a Leading Role%",
-    "supporting_actor":   "%Supporting Actor%",
-    "supporting_actress": "%Supporting Actress%",
-    "producer": "%Picture%",                   # Best Picture producers
-    "singer":   "%Song%"                       # all song‐related categories
-}
-
 
 @app.route("/dream_team")
 @login_required
 def dream_team():
     """
-    Pick the living person with the most Oscar wins in each key role.
+    Pick the living person with the most Oscar wins in each key role,
+    by running one specialized query per role.
     """
     conn = get_db()
-    cur  = conn.cursor()
-
+    cur = conn.cursor()
     team = {}
-    for role, pattern in TEAM_CATEGORIES.items():
-        cur.execute("""
-            SELECT
-              p.firstName,
-              p.lastName,
-              COUNT(*) AS wins
-            FROM AcademyNomination AS an
-            JOIN Person AS p
-              ON p.firstName   = an.personFirstName
-             AND p.lastName    = an.personLastName
-             AND p.birthDate   = an.personBirthDate
-            WHERE an.category     LIKE %s
-              AND an.grantedOrNot = 1
-              -- only living winners: either truly NULL or zero-date
-              AND p.deathDate IS NULL
-            GROUP BY p.firstName, p.lastName, p.birthDate
-            ORDER BY wins DESC
-            LIMIT 1
-        """, (pattern,))
-        row = cur.fetchone()
-        if row:
-            first, last, wins = row
-            team[role] = {"name": f"{first} {last}", "wins": wins}
-        else:
-            team[role] = {"name": "(no living winner)", "wins": 0}
+
+    # Director
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE (an.category       = 'Best Director'
+               OR an.category    = 'Best Directing'
+               OR an.category    = 'Best Directing (Comedy Picture)'
+               OR an.category    = 'Best Directing (Dramatic Picture)')
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["director"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["director"] = {"name": "(no living winner)", "wins": 0}
+
+    # Leading Actor
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE (an.category       = 'Best Actor'
+               OR an.category    = 'Best Actor in a Leading Role')
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["actor"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["actor"] = {"name": "(no living winner)", "wins": 0}
+
+    # Leading Actress
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE (an.category       = 'Best Actress'
+               OR an.category    = 'Best Actress in a Leading Role')
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["actress"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["actress"] = {"name": "(no living winner)", "wins": 0}
+
+    # Supporting Actor
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE an.category       = 'Best Actor in a Supporting Role'
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["supporting_actor"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["supporting_actor"] = {"name": "(no living winner)", "wins": 0}
+
+    # Supporting Actress
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE an.category       = 'Best Actress in a Supporting Role'
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["supporting_actress"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["supporting_actress"] = {"name": "(no living winner)", "wins": 0}
+
+    # Producer (Best Picture)
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE an.category       = 'Best Picture'
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if row:
+        team["producer"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["producer"] = {"name": "(no living winner)", "wins": 0}
+
+    # Singer/Musician
+    cur.execute("""
+        SELECT
+          p.firstName,
+          p.lastName,
+          COUNT(*) AS wins
+        FROM AcademyNomination AS an
+        JOIN Person AS p
+          ON p.firstName   = an.personFirstName
+         AND p.lastName    = an.personLastName
+         AND p.birthDate   = an.personBirthDate
+        WHERE (an.category       = 'Best Music (Adaptation Score)'
+               OR an.category    = 'Best Music (Music Score of a Dramatic or Comedy Picture)'
+               OR an.category    = 'Best Music (Music Score of a Dramatic Picture)'
+               OR an.category    = 'Best Music (Original Dramatic Score)'
+               OR an.category    = 'Best Music (Original Musical or Comedy Score)'
+               OR an.category    = 'Best Music (Original Score)'
+               OR an.category    = 'Best Music (Original Song Score and Its Adaptation)'
+               OR an.category    = 'Best Music (Original Song Score or Adaptation Score)'
+               OR an.category    = 'Best Music (Original Song Score)'
+               OR an.category    = 'Best Music (Original Song)'
+               OR an.category    = 'Best Music (Scoring of a Musical Picture)'
+               OR an.category    = 'Best Music (Scoring)'
+               OR an.category    = 'Best Music (Song)')
+          AND an.grantedOrNot    = 1
+          AND p.deathDate IS NULL
+        GROUP BY p.firstName, p.lastName, p.birthDate
+        ORDER BY wins DESC
+        LIMIT 1
+    """)
+
+    row = cur.fetchone()
+    if row:
+        team["singer"] = {"name": f"{row[0]} {row[1]}", "wins": row[2]}
+    else:
+        team["singer"] = {"name": "(no living winner)", "wins": 0}
 
     cur.close()
     conn.close()
+
     return render_template("dream_team.html", team=team)
 
 
@@ -567,7 +764,7 @@ def top_companies():
         ORDER BY oscar_wins DESC
         LIMIT 5
     """)
-    rows = cur.fetchall()  # list of (company, oscar_wins)
+    rows = cur.fetchall()  
     cur.close()
     conn.close()
     return render_template("top_companies.html", rows=rows)
@@ -577,27 +774,36 @@ def top_companies():
 def non_english_winners():
     """
     List all non-English-language movies that have ever won an Oscar,
-    along with their release year.
+    along with their year and language, ordered by most recent year first.
     """
     conn = get_db()
     cur  = conn.cursor()
+
     cur.execute("""
         SELECT DISTINCT
           m.title,
-          YEAR(m.releaseDate) AS year
+          YEAR(m.releaseDate)    AS year,
+          m.movieLanguage
         FROM AcademyNomination AS an
         JOIN Movie AS m
           ON m.title       = an.movieTitle
          AND m.releaseDate = an.movieReleaseDate
         WHERE an.grantedOrNot = 1
           AND m.movieLanguage IS NOT NULL
+          AND TRIM(m.movieLanguage) <> ''
           AND m.movieLanguage <> 'English'
-        ORDER BY year, m.title
+          AND m.movieLanguage <> 'nan'
+          AND m.movieLanguage <> 'No'
+          AND m.movieLanguage <> 'no'
+        ORDER BY year DESC, m.title
     """)
-    rows = cur.fetchall()  # [(title, year), …]
+    rows = cur.fetchall()  
+
     cur.close()
     conn.close()
     return render_template("non_english_winners.html", rows=rows)
+
+
 
 
 if __name__ == "__main__":

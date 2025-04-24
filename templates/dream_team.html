@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Dream Team{% endblock %}
+{% block title %}Dream Team{% endblock %}
 {% block content %}
   <div class="mt-4 text-center">
-    <h2>The Ultimate Oscars Dream Team</h2>
+    <h2>The Ultimate Oscars Dream Team</h2>
     <p class="text-muted mb-4">Each role is filled by the living person with the most Oscar wins</p>
   </div>
 
@@ -11,10 +11,16 @@
       <div class="col">
         <div class="card h-100">
           <div class="card-body">
-            <h5 class="card-title">{{ role }}</h5>
+            <h5 class="card-title">
+              {{ role.replace('_', ' ').title() }}
+            </h5>
             <p class="card-text">
-              <strong>{{ info.name }}</strong><br>
-              <small class="text-muted">{{ info.wins }} Oscar{{ "s" if info.wins!=1 }}</small>
+              <strong class="{{ 'text-muted' if info.name.startswith('(no') else '' }}">
+                {{ info.name }}
+              </strong><br>
+              <small class="text-muted">
+                {{ info.wins }} Oscar{{ "s" if info.wins != 1 }}
+              </small>
             </p>
           </div>
         </div>

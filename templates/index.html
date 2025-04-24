@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
 {% block content %}
-  <h1 class="mt-4">Welcome{% if g.user %}, {{ g.user }}{% endif %}!</h1>
-  <p>Head to the dashboard to discover our latest features!</p>
+  <h1 class="mt-4">
+    Welcome{% if g.user %}, {{ g.user }}{% endif %}!
+  </h1>
+
+  {% if g.user %}
+    <p>Head to the dashboard to discover our latest features!</p>
+  {% else %}
+    <p>Please <a href="{{ url_for('login') }}">Log in</a> or <a href="{{ url_for('register') }}">Register</a> to discover our latest features!</p>
+  {% endif %}
 {% endblock %}

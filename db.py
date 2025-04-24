@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 import mysql.connector
 
-# Load the .env in your project root
 load_dotenv()
 
 def get_db():

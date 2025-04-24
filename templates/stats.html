@@ -14,7 +14,7 @@
       </select>
     </div>
     <div class="col-auto align-self-end">
-      <button type="submit" class="btn btn-primary">Show Totals</button>
+      <button type="submit" class="btn btn-warning">Show Totals</button>
     </div>
   </form>
 
@@ -24,5 +24,29 @@
       &nbsp;|&nbsp;
       <strong>{{ stats[1] }}</strong> Oscar wins
     </div>
+  {% endif %}
+
+  {% if nominations %}
+    <h3 class="mt-4">All Nominations</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Movie</th>
+          <th>Release Date</th>
+          <th>Category</th>
+          <th>Won?</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for title, date, cat, won in nominations %}
+        <tr>
+          <td>{{ title }}</td>
+          <td>{{ date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ cat }}</td>
+          <td>{{ 'Yes' if won else 'No' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% endif %}
 {% endblock %}
